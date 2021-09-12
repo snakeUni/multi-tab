@@ -23,6 +23,10 @@ interface State<DataSource> {
      * 数据源
      */
     dataSource?: DataSource[]
+    /**
+     * 是否已经点击过
+     */
+    hasClicked?: boolean
   }
 }
 
@@ -54,11 +58,13 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
     return tabs.reduce((acc, cur) => {
       if (cur.key !== defaultCurKey) {
         acc[cur.key] = {
-          dataSource: []
+          dataSource: [],
+          hasClicked: false
         }
       } else {
         acc[cur.key] = {
-          dataSource: defaultDataSource
+          dataSource: defaultDataSource,
+          hasClicked: true
         }
       }
       return acc
@@ -127,6 +133,33 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
       hidden: currentKey !== t.key
     }
   })
+
+  const dispatchState = (
+    outerState: State<DataSource> | ((preState: State<DataSource>) => State<DataSource>)
+  ) => {
+    let nextState: State<DataSource> = {}
+    if (typeof outerState === 'function') {
+      nextState = outerState(state)
+    } else {
+      nextState = outerState
+    }
+    const newState = Object.keys(nextState).reduce((acc, cur) => {
+      acc[cur] = {
+        dataSource: nextState[cur].dataSource,
+        hasClicked: true
+      }
+      return acc
+    }, {} as State<DataSource>)
+
+    setState({
+      ...state,
+      ...newState
+    })
+  }
+
+  const resetData = () => {}
+
+  const loadMoreData = () => {}
 
   return []
 }
