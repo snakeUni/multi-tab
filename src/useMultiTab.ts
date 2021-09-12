@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import useEnhancedEffect from './useEnhancedEffect'
 
 /**
  * 数据源类型, 必须要有 key
@@ -34,34 +35,6 @@ interface ScrollRef {
   }
 }
 
-interface Action<DataSource> {
-  type: 'add' | 'update' | 'reset'
-  payload?: Partial<State<DataSource>>
-}
-
-function reducer<DataSource = any>(
-  preState: State<DataSource>,
-  action: Action<DataSource>
-): State<DataSource> {
-  switch (action.type) {
-    case 'add': {
-      return preState
-    }
-
-    case 'update': {
-      return preState
-    }
-
-    case 'reset': {
-      return preState
-    }
-
-    default: {
-      return preState
-    }
-  }
-}
-
 /**
  * 处理移动端多 Tab 滚动条互相影响的场景，主要是基于 Body 的滚动，基于容器的滚动采用多容器即可解决
  * @param param0
@@ -76,6 +49,7 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
 
   // 保持 key 的同步
   currentKeyRef.current = currentKey
+
   const [state, setState] = useState<State<DataSource>>(() => {
     return tabs.reduce((acc, cur) => {
       if (cur.key !== defaultCurKey) {
@@ -99,11 +73,33 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
     }, {} as ScrollRef)
   )
 
+  const getDocumentScrollTop = () => {
+    if (document?.documentElement) {
+      return document.documentElement.scrollTop
+    }
+
+    return 0
+  }
+
+  const getCurrentKeyScrollTop = (key: string) => {
+    return scrollTopRef.current[key].scrollTop
+  }
+
+  const setCurrentKeyScrollTop = (key: string, scrollTop: number) => {
+    scrollTopRef.current[key].scrollTop = scrollTop
+  }
+
+  const setDocumentScrollTop = (scrollTop: number) => {
+    if (currentKey) {
+      document.documentElement.scrollTop = scrollTop
+    }
+  }
+
   useEffect(() => {
     const handleScroll = () => {
       if (document?.documentElement) {
-        const scrollTop = document.documentElement.scrollTop
-        scrollTopRef.current[currentKeyRef.current as string].scrollTop = scrollTop
+        const scrollTop = getDocumentScrollTop()
+        setCurrentKeyScrollTop(currentKeyRef.current as string, scrollTop)
       }
     }
 
@@ -112,6 +108,13 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
       window.removeEventListener('scroll', handleScroll)
     }
   }, [])
+
+  useEnhancedEffect(() => {
+    // currentKey 发生改变，则滚动条滚动到对应的位置
+    if (currentKey) {
+      setDocumentScrollTop(getCurrentKeyScrollTop(currentKey) || 0)
+    }
+  }, [currentKey])
 
   const handleChangeTab = (cur: string) => {
     setCurrentKey(cur)
