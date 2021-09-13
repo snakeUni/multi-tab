@@ -17,17 +17,23 @@ interface UseMultiTab<T extends Tab, DataSource> {
   defaultDataSource?: DataSource[]
 }
 
+interface StateValue<DataSource> {
+  /**
+   * 数据源
+   */
+  dataSource?: DataSource[]
+  /**
+   * 是否已经点击过
+   */
+  hasClicked?: boolean
+  /**
+   * page 第几页
+   */
+  page?: number
+}
+
 interface State<DataSource> {
-  [key: string]: {
-    /**
-     * 数据源
-     */
-    dataSource?: DataSource[]
-    /**
-     * 是否已经点击过
-     */
-    hasClicked?: boolean
-  }
+  [key: string]: StateValue<DataSource>
 }
 
 interface ScrollRef {
@@ -39,11 +45,16 @@ interface ScrollRef {
   }
 }
 
+interface Status<DataSource> extends StateValue<DataSource> {
+  scrollTop?: number
+  hidden?: boolean
+}
+
 /**
  * 处理移动端多 Tab 滚动条互相影响的场景，主要是基于 Body 的滚动，基于容器的滚动采用多容器即可解决
  * @param param0
  */
-export default function useMultiTab<T extends Tab, DataSource = any>({
+export function useMultiTab<T extends Tab, DataSource = any>({
   tabs = [],
   defaultCurKey,
   defaultDataSource = []
@@ -59,12 +70,14 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
       if (cur.key !== defaultCurKey) {
         acc[cur.key] = {
           dataSource: [],
-          hasClicked: false
+          hasClicked: false,
+          page: 1
         }
       } else {
         acc[cur.key] = {
           dataSource: defaultDataSource,
-          hasClicked: true
+          hasClicked: true,
+          page: 1
         }
       }
       return acc
@@ -126,14 +139,6 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
     setCurrentKey(cur)
   }
 
-  const computedStatus = tabs.map(t => {
-    return {
-      dataSource: state[t.key].dataSource,
-      scrollTop: scrollTopRef.current[t.key].scrollTop,
-      hidden: currentKey !== t.key
-    }
-  })
-
   const dispatchState = (
     outerState: State<DataSource> | ((preState: State<DataSource>) => State<DataSource>)
   ) => {
@@ -157,9 +162,53 @@ export default function useMultiTab<T extends Tab, DataSource = any>({
     })
   }
 
-  const resetData = () => {}
+  /**
+   * 适合搜索相关的，重置数据，并且重置分页
+   */
+  const resetData = (curTabKey: string, stateValue: StateValue<DataSource>) => {
+    const nextState: State<DataSource> = {
+      ...state,
+      [curTabKey]: {
+        dataSource: stateValue.dataSource || [],
+        page: 1
+      }
+    }
+    dispatchState(nextState)
+  }
 
-  const loadMoreData = () => {}
+  /**
+   * 加载更多的数据
+   * @param curTabKey 当前 tab 的 key
+   * @param stateValue 传递最新的数据
+   */
+  const loadMoreData = (curTabKey: string, stateValue: StateValue<DataSource>) => {
+    const preState = state[curTabKey]
+    const nextState: State<DataSource> = {
+      ...state,
+      [curTabKey]: {
+        dataSource: preState.dataSource?.concat(stateValue.dataSource || []),
+        page: stateValue.page ?? (preState.page || 0) + 1
+      }
+    }
+    dispatchState(nextState)
+  }
 
-  return []
+  const computedStatus = tabs.reduce((acc, cur) => {
+    const v = {
+      ...state[cur.key],
+      scrollTop: scrollTopRef.current[cur.key].scrollTop,
+      hidden: currentKey !== cur.key
+    }
+    acc[cur.key] = v
+
+    return acc
+  }, {} as { [key: string]: Status<DataSource> })
+
+  return {
+    status: computedStatus,
+    dispatch: dispatchState,
+    loadMoreData,
+    resetData,
+    handleChangeTab
+  }
 }
