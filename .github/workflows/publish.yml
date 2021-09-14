@@ -32,4 +32,6 @@ jobs:
         run: |
           yarn
           yarn build-storybook
+          git config user.name fox
+          git config user.email 1025687605@qq.com
           yarn deploy
