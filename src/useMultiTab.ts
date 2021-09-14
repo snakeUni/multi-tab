@@ -139,27 +139,16 @@ export function useMultiTab<T extends Tab, DataSource = any>({
     setCurrentKey(cur)
   }
 
-  const dispatchState = (
-    outerState: State<DataSource> | ((preState: State<DataSource>) => State<DataSource>)
-  ) => {
-    let nextState: State<DataSource> = {}
-    if (typeof outerState === 'function') {
-      nextState = outerState(state)
-    } else {
-      nextState = outerState
-    }
-    const newState = Object.keys(nextState).reduce((acc, cur) => {
-      acc[cur] = {
-        dataSource: nextState[cur].dataSource,
+  const initState = (curTabKey: string, stateValue: StateValue<DataSource>) => {
+    const nextState: State<DataSource> = {
+      ...state,
+      [curTabKey]: {
+        dataSource: stateValue.dataSource || [],
+        page: 1,
         hasClicked: true
       }
-      return acc
-    }, {} as State<DataSource>)
-
-    setState({
-      ...state,
-      ...newState
-    })
+    }
+    setState(nextState)
   }
 
   /**
@@ -173,7 +162,7 @@ export function useMultiTab<T extends Tab, DataSource = any>({
         page: 1
       }
     }
-    dispatchState(nextState)
+    setState(nextState)
   }
 
   /**
@@ -187,10 +176,11 @@ export function useMultiTab<T extends Tab, DataSource = any>({
       ...state,
       [curTabKey]: {
         dataSource: preState.dataSource?.concat(stateValue.dataSource || []),
-        page: stateValue.page ?? (preState.page || 0) + 1
+        page: stateValue.page ?? (preState.page || 0) + 1,
+        hasClicked: true
       }
     }
-    dispatchState(nextState)
+    setState(nextState)
   }
 
   const computedStatus = tabs.reduce((acc, cur) => {
@@ -206,9 +196,11 @@ export function useMultiTab<T extends Tab, DataSource = any>({
 
   return {
     status: computedStatus,
-    dispatch: dispatchState,
+    dispatch: setState,
     loadMoreData,
     resetData,
-    handleChangeTab
+    handleChangeTab,
+    currentKey: currentKeyRef.current,
+    initTabState: initState
   }
 }
