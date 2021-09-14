@@ -10,7 +10,7 @@
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook",
     "deploy": "gh-pages -d storybook-static",
-    "cleanup": "rm -rf node_modules/gh-pages/.cache"
+    "cleanup": "rm -rf node_modules/.cache/gh-pages"
   },
   "devDependencies": {
     "@babel/core": "^7.11.1",
