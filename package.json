@@ -31,7 +31,8 @@
     "react-dom": "^16.13.1",
     "react-is": "^16.13.1",
     "tsdx": "^0.13.2",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "antd": "^4.16.13"
   },
   "husky": {
     "hooks": {
@@ -43,8 +44,5 @@
     "src/**/*.(ts|tsx)": [
       "prettier --write"
     ]
-  },
-  "dependencies": {
-    "antd": "^4.16.13"
   }
 }
