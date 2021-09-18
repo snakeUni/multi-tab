@@ -28,5 +28,5 @@ export function useRace<Request = any>(initialRequest: Request) {
     requestRef.current = requestOther
   }
 
-  return { setRef, isEqual }
+  return { setRef, isEqual, dep: requestRef.current }
 }
